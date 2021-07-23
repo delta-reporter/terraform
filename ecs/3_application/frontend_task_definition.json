@@ -1,0 +1,31 @@
+[
+  {
+    "name": "${frontend_task_definition_name}",
+    "image": "${frontend_docker_image_url}",
+    "essential": true,
+    "environment": [{
+        "name": "DELTA_CORE_URL",
+        "value": "${backend_internal_url}"
+      },
+      {
+        "name": "PUBLIC_DELTA_CORE_URL",
+        "value": "${backend_public_url}"
+      },
+      {
+        "name": "PORT",
+        "value": "${frontend_docker_container_port}"
+      }
+    ],
+    "portMappings": [{
+      "containerPort": ${frontend_docker_container_port}
+    }],
+    "logConfiguration": {
+      "logDriver": "awslogs",
+      "options": {
+        "awslogs-group": "${frontend_task_definition_name}-LogGroup",
+        "awslogs-region": "${region}",
+        "awslogs-stream-prefix": "${frontend_task_definition_name}-LogGroup-stream"
+      }
+    }
+  }
+]

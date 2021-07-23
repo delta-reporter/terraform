@@ -1,0 +1,169 @@
+[
+  {
+    "name": "${backend_task_definition_name}",
+    "image": "${backend_docker_image_url}",
+    "essential": false,
+    "environment": [{
+        "name": "APP_SETTINGS",
+        "value": "${app_settings}"
+      },
+      {
+        "name": "DATABASE_URL",
+        "value": "${database_url}"
+      },
+      {
+        "name": "REDIS_URL",
+        "value": "${redis_url}"
+      },
+      {
+        "name": "BROKER_URL",
+        "value": "${broker_url}"
+      },
+      {
+        "name": "DAYS_OLD_MEDIA_DELETE",
+        "value": "${days_old_media_delete}"
+      }
+    ],
+    "entryPoint": ["sh", "-c", "python manage.py db upgrade && gunicorn -b 0.0.0.0:5000 app:app"],
+    "portMappings": [{
+      "containerPort": ${backend_docker_container_port}
+    }],
+    "logConfiguration": {
+      "logDriver": "awslogs",
+      "options": {
+        "awslogs-group": "${backend_task_definition_name}-LogGroup",
+        "awslogs-region": "${region}",
+        "awslogs-stream-prefix": "${backend_task_definition_name}-LogGroup-stream"
+      }
+    },
+    "dependsOn": [{
+      "condition": "HEALTHY",
+      "containerName": "delta-db"
+    }]
+  },
+  {
+    "name": "${db_task_definition_name}",
+    "image": "${db_docker_image_url}",
+    "essential": true,
+    "environment": [{
+        "name": "POSTGRES_DB",
+        "value": "${db_database}"
+      },
+      {
+        "name": "POSTGRES_PASSWORD",
+        "value": "${db_password}"
+      },
+      {
+        "name": "POSTGRES_USER",
+        "value": "${db_user}"
+      }
+    ],
+    "portMappings": [{
+      "containerPort": ${db_port}
+    }],
+    "logConfiguration": {
+      "logDriver": "awslogs",
+      "options": {
+        "awslogs-group": "${db_task_definition_name}-LogGroup",
+        "awslogs-region": "${region}",
+        "awslogs-stream-prefix": "${db_task_definition_name}-LogGroup-stream"
+      }
+    },
+    "healthCheck": {
+      "command": ["CMD-SHELL", "pg_isready -U delta -d delta_db"],
+      "interval": 10,
+      "timeout": 5,
+      "retries": 5
+    }
+  },
+  {
+    "name": "${rabbit_task_definition_name}",
+    "image": "${rabbit_docker_image_url}",
+    "essential": false,
+    "environment": [{
+        "name": "RABBITMQ_DEFAULT_PASS",
+        "value": "${rabbit_pass}"
+      },
+      {
+        "name": "RABBITMQ_DEFAULT_USER",
+        "value": "${rabbit_user}"
+      }
+    ],
+    "portMappings": [{
+      "containerPort": ${rabbit_port}
+    }],
+    "logConfiguration": {
+      "logDriver": "awslogs",
+      "options": {
+        "awslogs-group": "${rabbit_task_definition_name}-LogGroup",
+        "awslogs-region": "${region}",
+        "awslogs-stream-prefix": "${rabbit_task_definition_name}-LogGroup-stream"
+      }
+    },
+    "healthCheck": {
+      "command": ["rabbitmq-diagnostics -q ping"],
+      "interval": 10,
+      "timeout": 5,
+      "retries": 5
+    }
+  },
+  {
+    "name": "${redis_task_definition_name}",
+    "image": "${redis_docker_image_url}",
+    "essential": false,
+    "portMappings": [{
+      "containerPort": ${redis_port}
+    }],
+    "logConfiguration": {
+      "logDriver": "awslogs",
+      "options": {
+        "awslogs-group": "${redis_task_definition_name}-LogGroup",
+        "awslogs-region": "${region}",
+        "awslogs-stream-prefix": "${redis_task_definition_name}-LogGroup-stream"
+      }
+    },
+    "healthCheck": {
+      "command": ["CMD", "redis-cli", "ping"],
+      "interval": 10,
+      "timeout": 5,
+      "retries": 5
+    }
+  },
+  {
+    "name": "${worker_task_definition_name}",
+    "image": "${backend_docker_image_url}",
+    "essential": false,
+    "environment": [{
+        "name": "APP_SETTINGS",
+        "value": "${app_settings}"
+      },
+      {
+        "name": "DATABASE_URL",
+        "value": "${database_url}"
+      },
+      {
+        "name": "REDIS_URL",
+        "value": "${redis_url}"
+      },
+      {
+        "name": "BROKER_URL",
+        "value": "${broker_url}"
+      }
+    ],
+    "entryPoint": ["sh", "-c", "python -m celery -A tasks worker --loglevel INFO"],
+    "logConfiguration": {
+      "logDriver": "awslogs",
+      "options": {
+        "awslogs-group": "${worker_task_definition_name}-LogGroup",
+        "awslogs-region": "${region}",
+        "awslogs-stream-prefix": "${worker_task_definition_name}-LogGroup-stream"
+      }
+    },
+    "healthCheck": {
+      "command": ["CMD", "python -m celery inspect ping"],
+      "interval": 10,
+      "timeout": 5,
+      "retries": 5
+    }
+  }
+]
