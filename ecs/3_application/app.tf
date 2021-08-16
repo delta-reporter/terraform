@@ -53,7 +53,7 @@ data "template_file" "backend_task_definition_template" {
 resource "aws_ecs_task_definition" "delta-core-task-definition" {
   container_definitions     = data.template_file.backend_task_definition_template.rendered
   family                    = var.backend_service_name
-  cpu                       = 512
+  cpu                       = var.cpu
   memory                    = var.memory
   requires_compatibilities  = ["FARGATE"]
   network_mode              = "awsvpc"
@@ -79,8 +79,8 @@ data "template_file" "frontend_task_definition_template" {
 resource "aws_ecs_task_definition" "delta-frontend-task-definition" {
   container_definitions     = data.template_file.frontend_task_definition_template.rendered
   family                    = var.frontend_service_name
-  cpu                       = 512
-  memory                    = var.memory
+  cpu                       = var.frontend_cpu
+  memory                    = var.frontend_memory
   requires_compatibilities  = ["FARGATE"]
   network_mode              = "awsvpc"
   execution_role_arn        = aws_iam_role.fargate_iam_role.arn
@@ -269,10 +269,10 @@ resource "aws_alb_target_group" "ecs_frontend_target_group" {
     path                = "/api/healthcheck"
     protocol            = "HTTP"
     matcher             = "200"
-    interval            = "120"
-    timeout             = "60"
-    unhealthy_threshold = "3"
-    healthy_threshold   = "3"
+    interval            = "300"
+    timeout             = "120"
+    unhealthy_threshold = "5"
+    healthy_threshold   = "5"
   }
 
   tags = {

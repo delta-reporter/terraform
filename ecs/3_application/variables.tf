@@ -24,8 +24,21 @@ variable "backend_service_name" {
 variable "backend_docker_image_url" {
   
 }
+
 variable "memory" {
   
+}
+
+variable "cpu" {
+
+}
+
+variable "frontend_memory" {
+
+}
+
+variable "frontend_cpu" {
+
 }
 
 variable "backend_docker_container_port" {
